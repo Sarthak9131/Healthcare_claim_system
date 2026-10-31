@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: Synthetic Claims CX Tools
+  version: 0.1.0
+  description: Identity-gated tools for the synthetic claims prototype.
+servers:
+  - url: ${CLAIMS_API_URL}
+security:
+  - bearerAuth: []
+paths:
+  /cx/tools/claim-status:
+    post:
+      operationId: getVerifiedClaimStatus
+      summary: Get minimum-necessary claim status after identity verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifiedClaimRequest"
+      responses:
+        "200":
+          description: Backend claim status and reason codes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimStatus"
+        "401":
+          description: Webhook/tool authentication failed
+        "404":
+          description: Verified claim was not found or has no result
+  /cx/tools/appeals:
+    post:
+      operationId: submitVerifiedAppeal
+      summary: Receive an appeal after identity verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifiedAppealRequest"
+      responses:
+        "200":
+          description: Appeal intake confirmation, not an outcome
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppealReceipt"
+        "401":
+          description: Webhook/tool authentication failed
+        "404":
+          description: Verified appeal could not be accepted
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    VerifiedClaimRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - claim_id
+        - member_id
+        - date_of_birth
+      properties:
+        claim_id:
+          type: string
+        member_id:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+    VerifiedAppealRequest:
+      allOf:
+        - $ref: "#/components/schemas/VerifiedClaimRequest"
+        - type: object
+          required:
+            - appeal_text
+          properties:
+            appeal_text:
+              type: string
+    ClaimStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - reason_codes
+        - allowed_amount
+        - paid_amount
+        - member_responsibility
+      properties:
+        status:
+          type: string
+          enum:
+            - PAID
+            - PARTIALLY_PAID
+            - DENIED
+            - PENDED_FOR_REVIEW
+        reason_codes:
+          type: array
+          items:
+            type: object
+            required:
+              - code
+              - description
+              - rank
+            properties:
+              code:
+                type: string
+              description:
+                type: string
+              rank:
+                type: integer
+        allowed_amount:
+          type: string
+        paid_amount:
+          type: string
+        member_responsibility:
+          type: string
+    AppealReceipt:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - RECEIVED

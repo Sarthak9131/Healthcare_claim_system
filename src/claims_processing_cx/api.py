@@ -16,6 +16,7 @@ from claims_processing_cx.models import (
     Decision,
     DecisionStatus,
     Member,
+    RankedReasonCode,
     StrictModel,
 )
 from claims_processing_cx.pipeline import ClaimsPipeline
@@ -29,6 +30,36 @@ class AppealSubmission(StrictModel):
     claim_id: str
     member_id: str
     appeal_text: str
+
+
+class VerifiedClaimRequest(StrictModel):
+    """Identity-gated CX tool request."""
+
+    claim_id: str
+    member_id: str
+    date_of_birth: date
+
+
+class VerifiedAppealRequest(VerifiedClaimRequest):
+    """Identity-gated CX appeal tool request."""
+
+    appeal_text: str
+
+
+class ClaimStatusToolResponse(StrictModel):
+    """Minimum necessary claim status and backend-provided explanation facts."""
+
+    status: DecisionStatus
+    reason_codes: list[RankedReasonCode]
+    allowed_amount: str
+    paid_amount: str
+    member_responsibility: str
+
+
+class AppealToolResponse(StrictModel):
+    """Confirmation that appeal intake was accepted."""
+
+    status: str
 
 
 def create_app(
@@ -90,20 +121,60 @@ def create_app(
             if decision.status == DecisionStatus.PENDED_FOR_REVIEW
         ]
 
+    @app.post("/cx/tools/claim-status", response_model=ClaimStatusToolResponse)
+    async def cx_claim_status(
+        request: VerifiedClaimRequest,
+        authorization: str | None = Header(default=None),
+    ) -> ClaimStatusToolResponse:
+        """Return minimum claim facts only after matching member ID and DOB."""
+        _verify_webhook_token(authorization, configured_token)
+        member = _verified_member(data_store, request.member_id, request.date_of_birth.isoformat())
+        claim = data_store.get_claim(request.claim_id)
+        if member is None or claim is None or claim.member_id != member.member_id:
+            raise HTTPException(status_code=404, detail="Verified claim was not found.")
+        decision = data_store.get_decision(request.claim_id)
+        if decision is None:
+            raise HTTPException(status_code=404, detail="Claim result is not available.")
+        return ClaimStatusToolResponse(
+            status=decision.status,
+            reason_codes=decision.reason_codes,
+            allowed_amount=str(decision.allowed_amount),
+            paid_amount=str(decision.paid_amount),
+            member_responsibility=str(decision.member_responsibility),
+        )
+
+    @app.post("/cx/tools/appeals", response_model=AppealToolResponse)
+    async def cx_submit_appeal(
+        request: VerifiedAppealRequest,
+        authorization: str | None = Header(default=None),
+    ) -> AppealToolResponse:
+        """Accept identity-verified appeal text without deciding its merits."""
+        _verify_webhook_token(authorization, configured_token)
+        member = _verified_member(data_store, request.member_id, request.date_of_birth.isoformat())
+        claim = data_store.get_claim(request.claim_id)
+        if (
+            member is None
+            or claim is None
+            or claim.member_id != member.member_id
+            or not request.appeal_text.strip()
+        ):
+            raise HTTPException(status_code=404, detail="Verified appeal could not be accepted.")
+        appeal = Appeal(
+            appeal_id=f"SYN-APPEAL-{uuid4().hex[:12].upper()}",
+            claim_id=request.claim_id,
+            member_id=member.member_id,
+            appeal_text=request.appeal_text,
+        )
+        data_store.save_appeal(appeal)
+        return AppealToolResponse(status="RECEIVED")
+
     @app.post("/webhook")
     async def dialogflow_webhook(
         payload: dict[str, Any],
         authorization: str | None = Header(default=None),
     ) -> dict[str, Any]:
         """Handle the standard Dialogflow CX webhook request in local mode."""
-        if configured_token is not None:
-            supplied = (
-                authorization.removeprefix("Bearer ").strip()
-                if authorization is not None
-                else ""
-            )
-            if not secrets.compare_digest(supplied, configured_token):
-                raise HTTPException(status_code=401, detail="Webhook authentication failed.")
+        _verify_webhook_token(authorization, configured_token)
 
         fulfillment_info = _as_dict(payload.get("fulfillmentInfo"))
         session_info = _as_dict(payload.get("sessionInfo"))
@@ -182,6 +253,19 @@ def _verified_member(
     if member is None or member.date_of_birth != date_of_birth:
         return None
     return member
+
+
+def _verify_webhook_token(authorization: str | None, token: str | None) -> None:
+    """Enforce an optional shared secret in local-mock or deployed CX mode."""
+    if token is None:
+        return
+    supplied = (
+        authorization.removeprefix("Bearer ").strip()
+        if authorization is not None
+        else ""
+    )
+    if not secrets.compare_digest(supplied, token):
+        raise HTTPException(status_code=401, detail="Webhook authentication failed.")
 
 
 def _string_parameter(value: object) -> str:

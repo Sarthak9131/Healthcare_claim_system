@@ -1,0 +1,124 @@
+schema_version: 1
+document_kind: design-blueprint-not-platform-export
+product:
+  documentation_name: Dialogflow CX
+  console_name: Conversational Agents console
+  api: Dialogflow CX v3
+agent:
+  display_name: Synthetic Claims Assistant
+  default_language: en
+  location: us-central1
+  conversation_start: flow
+  description: >
+    Portfolio prototype for synthetic member and provider claim-support conversations.
+    No real member data is permitted.
+identity_policy:
+  verify_before_claim_data:
+    required_parameters:
+      - member_id
+      - date_of_birth
+    backend_verification: Match both values to the claim's synthetic member record.
+    failure_behavior: Do not reveal whether a claim exists; offer human assistance.
+  identifier_response_policy:
+    echo_member_id: false
+    echo_date_of_birth: false
+    collect_full_ssn: false
+flows:
+  - name: Member Identity and Claim Support
+    purpose: Deterministic identity checks and appeal intake.
+    pages:
+      - name: Start
+        routes:
+          - intent: claim_status_lookup
+            target_page: Identity Verification
+          - intent: denial_explanation
+            target_page: Identity Verification
+          - intent: appeal_intake
+            target_page: Identity Verification
+          - intent: missing_document_request
+            target_page: Identity Verification
+          - intent: human_escalation
+            target_page: Human Handoff
+      - name: Identity Verification
+        parameters:
+          - name: member_id
+            type: string
+            required: true
+            session_only: true
+          - name: date_of_birth
+            type: date
+            required: true
+            session_only: true
+        routes:
+          - condition: backend_identity_verified
+            target_page: Verified Request Router
+          - condition: verification_failed
+            target_page: Human Handoff
+      - name: Verified Request Router
+        routes:
+          - intent: claim_status_lookup
+            target_page: Claim Status
+          - intent: denial_explanation
+            target_page: Denial Explanation
+          - intent: appeal_intake
+            target_page: Appeal Confirmation
+          - intent: missing_document_request
+            target_page: Missing Documents
+      - name: Appeal Confirmation
+        purpose: Confirm the member's submission intent before sending appeal text.
+        routes:
+          - condition: explicit_submission_confirmation
+            target_page: Appeal Submitted
+          - condition: cancellation_or_unclear
+            target_page: Human Handoff
+      - name: Appeal Submitted
+        purpose: Confirm receipt only; the prototype does not decide appeal merits.
+      - name: Human Handoff
+        purpose: Stop automated claim disclosure and offer a human support channel.
+playbooks:
+  - name: Claim Status Lookup
+    goal: Return only the status and reason codes provided by the verified backend.
+    instructions:
+      - Require completed backend identity verification first.
+      - Call the identity-gated claim_status tool.
+      - Do not infer a status if the backend has no result.
+      - Never repeat member identifiers or date of birth.
+  - name: Denial Explanation
+    goal: Explain backend-provided reason codes in plain language.
+    instructions:
+      - Use only reason codes and benefit amounts returned by the backend.
+      - Do not invent a denial reason, clinical conclusion, or legal advice.
+      - Offer the deterministic appeal-intake flow or human handoff.
+  - name: Missing Document Request
+    goal: Explain an outstanding backend document reason and list only requested items.
+    instructions:
+      - Require completed identity verification.
+      - State that this demo does not receive or store uploaded documents.
+      - Do not request unnecessary sensitive information.
+  - name: Human Escalation
+    goal: Stop automated handling and route the conversation to a human channel.
+    instructions:
+      - Escalate identity failures, suspected fraud, review-pended claims, and user requests.
+      - Do not imply that a human has accepted the case unless a handoff integration confirms it.
+intents:
+  - claim_status_lookup
+  - denial_explanation
+  - appeal_intake
+  - missing_document_request
+  - human_escalation
+fallback:
+  behavior: Clarify once, then offer a human handoff.
+  never_disclose_unverified_claim_data: true
+integrations:
+  playbook_openapi_tool:
+    spec: openapi.yaml
+    server: ${CLAIMS_API_URL}
+    authorization: Bearer ${CX_WEBHOOK_TOKEN}
+  deterministic_flow_webhook:
+    url: ${CX_WEBHOOK_URL}
+    method: HTTPS_POST
+    contract: Dialogflow CX standard WebhookRequest and WebhookResponse JSON
+    authorization: Bearer ${CX_WEBHOOK_TOKEN}
+  deployment:
+    export_format: JSON_PACKAGE
+    warning: Restore replaces resources in the selected target agent.

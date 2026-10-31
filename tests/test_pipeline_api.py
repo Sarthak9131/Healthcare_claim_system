@@ -165,3 +165,51 @@ def test_webhook_token_is_enforced_when_configured(tmp_path: Path) -> None:
 
     assert unauthorized.status_code == 401
     assert authorized.status_code == 200
+
+
+def test_cx_openapi_tools_gate_identity_and_return_minimum_data(tmp_path: Path) -> None:
+    """CX OpenAPI actions verify ownership and never echo member identifiers."""
+    dataset = create_synthetic_dataset()
+    storage = InMemoryStorage(dataset)
+    app = create_app(storage, audit_directory=tmp_path / "audit")
+    client = TestClient(app)
+    claim = next(item for item in dataset.claims if "expired_coverage" in item.scenario_tags)
+    member = storage.get_member(claim.member_id or "")
+    assert member is not None
+    response = client.post("/adjudicate", json=claim.model_dump(mode="json"))
+    assert response.status_code == 200
+
+    wrong_identity = client.post(
+        "/cx/tools/claim-status",
+        json={
+            "claim_id": claim.claim_id,
+            "member_id": member.member_id,
+            "date_of_birth": "1900-01-01",
+        },
+    )
+    verified = client.post(
+        "/cx/tools/claim-status",
+        json={
+            "claim_id": claim.claim_id,
+            "member_id": member.member_id,
+            "date_of_birth": member.date_of_birth.isoformat(),
+        },
+    )
+    appeal = client.post(
+        "/cx/tools/appeals",
+        json={
+            "claim_id": claim.claim_id,
+            "member_id": member.member_id,
+            "date_of_birth": member.date_of_birth.isoformat(),
+            "appeal_text": "Synthetic appeal text.",
+        },
+    )
+
+    assert wrong_identity.status_code == 404
+    assert verified.status_code == 200
+    assert verified.json()["status"] == DecisionStatus.DENIED.value
+    assert member.member_id not in verified.text
+    assert member.date_of_birth.isoformat() not in verified.text
+    assert "CO-27" in [item["code"] for item in verified.json()["reason_codes"]]
+    assert appeal.status_code == 200
+    assert appeal.json() == {"status": "RECEIVED"}
