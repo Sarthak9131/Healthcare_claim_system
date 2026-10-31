@@ -28,6 +28,12 @@ class Storage(Protocol):
     def get_policy(self, policy_id: str) -> Policy | None:
         """Return a known synthetic policy."""
 
+    def list_members(self) -> list[Member]:
+        """Return synthetic members for context-aware masking."""
+
+    def list_providers(self) -> list[Provider]:
+        """Return synthetic providers for context-aware masking."""
+
     def list_claims(self) -> list[Claim]:
         """Return claims used for duplicate detection."""
 
@@ -73,6 +79,14 @@ class InMemoryStorage:
     def get_policy(self, policy_id: str) -> Policy | None:
         """Return a known synthetic policy."""
         return self.policies.get(policy_id)
+
+    def list_members(self) -> list[Member]:
+        """Return synthetic members for context-aware masking."""
+        return list(self.members.values())
+
+    def list_providers(self) -> list[Provider]:
+        """Return synthetic providers for context-aware masking."""
+        return list(self.providers.values())
 
     def list_claims(self) -> list[Claim]:
         """Return claims used for duplicate detection."""

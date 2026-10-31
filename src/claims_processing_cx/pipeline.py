@@ -20,6 +20,7 @@ from claims_processing_cx.models import (
     DecisionStatus,
     RankedReasonCode,
 )
+from claims_processing_cx.privacy import PIIMasker
 from claims_processing_cx.storage import Storage
 
 _REASON_DESCRIPTIONS = {
@@ -68,7 +69,9 @@ class ClaimsPipeline:
     ) -> None:
         self.storage = storage
         self.audit_trail = audit_trail
-        self.checks = ClaimsChecks(storage, llm)
+        self.masker = PIIMasker(storage)
+        self.audit_trail.masker = self.masker
+        self.checks = ClaimsChecks(storage, llm, self.masker)
         self.high_dollar_threshold = high_dollar_threshold
 
     async def adjudicate(self, payload: dict[str, Any]) -> Decision:
@@ -361,14 +364,15 @@ class ClaimsPipeline:
         errors: list[str] | None = None,
     ) -> None:
         """Persist a structured step event using a digest instead of raw input."""
+        masked_input = self.masker.mask_value(input_value)
         self.audit_trail.record(
             AuditEvent(
                 claim_id=claim_id,
                 step=step,
                 latency_ms=max(0.0, latency_seconds * 1000),
-                input_hash=stable_hash(input_value),
-                output=output,
-                errors=errors or [],
+                input_hash=stable_hash(masked_input),
+                output=self.masker.mask_value(output),
+                errors=self.masker.mask_value(errors or []),
                 token_usage=0,
             )
         )

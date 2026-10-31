@@ -10,6 +10,7 @@ from typing import Any
 from pydantic import Field
 
 from claims_processing_cx.models import StrictModel
+from claims_processing_cx.privacy import PIIMasker
 
 LOGGER = logging.getLogger("claims_processing.audit")
 
@@ -36,12 +37,19 @@ class AuditEvent(StrictModel):
 class AuditTrail:
     """Writes one JSON file per claim while emitting structured log lines."""
 
-    def __init__(self, directory: Path) -> None:
+    def __init__(self, directory: Path, masker: PIIMasker | None = None) -> None:
         self.directory = directory
+        self.masker = masker or PIIMasker()
         self._events: dict[str, list[AuditEvent]] = {}
 
     def record(self, event: AuditEvent) -> None:
         """Append an event to memory and atomically replace its JSON trail."""
+        event = event.model_copy(
+            update={
+                "output": self.masker.mask_value(event.output),
+                "errors": self.masker.mask_value(event.errors),
+            }
+        )
         events = self._events.setdefault(event.claim_id, [])
         events.append(event)
         self.directory.mkdir(parents=True, exist_ok=True)

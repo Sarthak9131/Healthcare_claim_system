@@ -5,6 +5,7 @@ from typing import Any
 
 from claims_processing_cx.llm import LLMClient
 from claims_processing_cx.models import Claim
+from claims_processing_cx.privacy import PIIMasker
 from claims_processing_cx.storage import Storage
 
 _ICD10_CM = {"E11.9", "I10", "J06.9", "M54.5"}
@@ -19,9 +20,10 @@ _ILLUSTRATIVE_DIAGNOSIS_RULES = {
 class ClaimsChecks:
     """Rules for exact validations plus an isolated language-judgment seam."""
 
-    def __init__(self, storage: Storage, llm: LLMClient) -> None:
+    def __init__(self, storage: Storage, llm: LLMClient, masker: PIIMasker) -> None:
         self.storage = storage
         self.llm = llm
+        self.masker = masker
 
     async def eligibility(self, claim: Claim) -> dict[str, Any]:
         """Check member and policy coverage on each service date."""
@@ -189,7 +191,10 @@ class ClaimsChecks:
                 "No narrative documentation was supplied; no language judgment was needed.",
                 confidence=Decimal("1.0"),
             )
-        consistent, confidence, rationale = await self.llm.review_documentation(documentation)
+        masked_documentation = self.masker.mask_text(documentation)
+        consistent, confidence, rationale = await self.llm.review_documentation(
+            masked_documentation
+        )
         return self._result(
             "documentation_consistency",
             consistent,
