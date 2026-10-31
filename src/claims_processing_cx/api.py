@@ -188,7 +188,8 @@ def create_app(
         )
         if member is None:
             return _webhook_response(
-                "I could not verify your identity, so I did not access claim information."
+                "I could not verify your identity, so I did not access claim information. "
+                "I can offer assistance from a human agent."
             )
 
         if tag == "claim_status":
@@ -196,7 +197,8 @@ def create_app(
             claim = data_store.get_claim(claim_id)
             if claim is None or claim.member_id != member.member_id:
                 return _webhook_response(
-                    "I could not find a claim associated with your verified account."
+                    "I could not find a claim associated with your verified account. "
+                    "I can offer assistance from a human agent."
                 )
             decision = data_store.get_decision(claim_id)
             if decision is None:
@@ -231,7 +233,7 @@ def create_app(
             )
 
         return _webhook_response(
-            "I could not complete that request. I can help with claim status or appeal intake."
+            "I could not complete that request. I can offer a human handoff."
         )
 
     return app

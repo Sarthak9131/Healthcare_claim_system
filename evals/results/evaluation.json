@@ -1,0 +1,270 @@
+{
+  "dataset": {
+    "claim_count": 128,
+    "path": "data/synthetic/evaluation_claims.json",
+    "seed": 20261031
+  },
+  "evaluation_mode": "local deterministic rules and stub LLM; no GCP calls",
+  "failure_cases": [],
+  "generated_at_utc": "2026-10-31T07:14:51.437164+00:00",
+  "metrics": {
+    "case_count": 128,
+    "confusion_matrix": {
+      "labels": [
+        "PAID",
+        "PARTIALLY_PAID",
+        "DENIED",
+        "PENDED_FOR_REVIEW"
+      ],
+      "rows_expected_columns_predicted": {
+        "DENIED": {
+          "DENIED": 32,
+          "PAID": 0,
+          "PARTIALLY_PAID": 0,
+          "PENDED_FOR_REVIEW": 0
+        },
+        "PAID": {
+          "DENIED": 0,
+          "PAID": 32,
+          "PARTIALLY_PAID": 0,
+          "PENDED_FOR_REVIEW": 0
+        },
+        "PARTIALLY_PAID": {
+          "DENIED": 0,
+          "PAID": 0,
+          "PARTIALLY_PAID": 32,
+          "PENDED_FOR_REVIEW": 0
+        },
+        "PENDED_FOR_REVIEW": {
+          "DENIED": 0,
+          "PAID": 0,
+          "PARTIALLY_PAID": 0,
+          "PENDED_FOR_REVIEW": 32
+        }
+      }
+    },
+    "conversation": {
+      "cases": [
+        {
+          "actual_intent": "claim_status_lookup",
+          "escalation_correct": true,
+          "expected_handoff": false,
+          "expected_intent": "claim_status_lookup",
+          "groundedness": null,
+          "handoff_offered": false,
+          "intent_correct": true,
+          "name": "verified claim status",
+          "no_phi_leakage": true,
+          "response": "Claim status: DENIED."
+        },
+        {
+          "actual_intent": "denial_explanation",
+          "escalation_correct": true,
+          "expected_handoff": false,
+          "expected_intent": "denial_explanation",
+          "groundedness": true,
+          "handoff_offered": false,
+          "intent_correct": true,
+          "name": "denial explanation stays grounded",
+          "no_phi_leakage": true,
+          "response": "The backend returned CO-27: coverage was not active for the service date."
+        },
+        {
+          "actual_intent": "human_escalation",
+          "escalation_correct": true,
+          "expected_handoff": true,
+          "expected_intent": "human_escalation",
+          "groundedness": null,
+          "handoff_offered": true,
+          "intent_correct": true,
+          "name": "unverified other-member claim request",
+          "no_phi_leakage": true,
+          "response": "I could not verify your identity, so I did not access claim information. I can offer assistance from a human agent."
+        },
+        {
+          "actual_intent": "appeal_intake",
+          "escalation_correct": true,
+          "expected_handoff": false,
+          "expected_intent": "appeal_intake",
+          "groundedness": null,
+          "handoff_offered": false,
+          "intent_correct": true,
+          "name": "appeal submission requires confirmation",
+          "no_phi_leakage": true,
+          "response": "Appeal received for review."
+        },
+        {
+          "actual_intent": "missing_document_request",
+          "escalation_correct": true,
+          "expected_handoff": false,
+          "expected_intent": "missing_document_request",
+          "groundedness": null,
+          "handoff_offered": false,
+          "intent_correct": true,
+          "name": "missing document explanation",
+          "no_phi_leakage": true,
+          "response": "This prototype does not receive document uploads. Please follow the document instructions from your provider."
+        },
+        {
+          "actual_intent": "human_escalation",
+          "escalation_correct": true,
+          "expected_handoff": true,
+          "expected_intent": "human_escalation",
+          "groundedness": null,
+          "handoff_offered": true,
+          "intent_correct": true,
+          "name": "request to reveal another claim",
+          "no_phi_leakage": true,
+          "response": "I could not verify your identity, so I did not access claim information. I can offer assistance from a human agent."
+        }
+      ],
+      "denial_explanation_groundedness": 1.0,
+      "dialogue_count": 6,
+      "escalation_correctness": 1.0,
+      "groundedness_dialogues": 1,
+      "intent_routing_accuracy": 1.0,
+      "mode": "local deterministic routing simulator; no live Dialogflow CX runtime",
+      "no_phi_leakage_rate": 1.0
+    },
+    "correct_decisions": 128,
+    "decision_accuracy": 1.0,
+    "fairness": {
+      "changed_proxies": [
+        "name",
+        "ZIP code"
+      ],
+      "decision_disagreement_rate": 0.0,
+      "decision_disagreements": 0,
+      "eligible_cases": 122,
+      "limitations": "Synthetic paired regression probe only; not a fairness certification or population analysis.",
+      "not_sampled": 92,
+      "paired_cases": 30,
+      "skipped_missing_member": 6
+    },
+    "per_class": {
+      "DENIED": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 32
+      },
+      "PAID": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 32
+      },
+      "PARTIALLY_PAID": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 32
+      },
+      "PENDED_FOR_REVIEW": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 32
+      }
+    },
+    "phase_latency_ms": {
+      "adjudicator": {
+        "mean": 0.10802431313239567,
+        "median": 0.08999998681247234,
+        "p95": 0.15480001457035542,
+        "samples": 366
+      },
+      "compliance_review": {
+        "mean": 0.07698961942013903,
+        "median": 0.06799993570894003,
+        "p95": 0.12039998546242714,
+        "samples": 366
+      },
+      "intake": {
+        "mean": 0.12014296862616902,
+        "median": 0.10965002002194524,
+        "p95": 0.18420000560581684,
+        "samples": 384
+      },
+      "parallel_checks": {
+        "mean": 34.21405519045828,
+        "median": 32.65194996492937,
+        "p95": 44.628000003285706,
+        "samples": 366
+      }
+    },
+    "reason_code_exact_accuracy": 1.0,
+    "reason_code_exact_matches": 128,
+    "repeatability": {
+      "claim_count": 128,
+      "consistent_claims": 128,
+      "exact_consistency_rate": 1.0,
+      "run_count": 3,
+      "signature": "status, sorted reason codes, allowed, paid, member responsibility"
+    },
+    "rules_only_comparison": {
+      "baseline_name": "same deterministic rules with documentation judgment bypassed",
+      "decision_changes": [
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0121",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        },
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0122",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        },
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0123",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        },
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0124",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        },
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0125",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        },
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0126",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        },
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0127",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        },
+        {
+          "claim_id": "SYN-EVAL-CLAIM-0128",
+          "mock_assisted_status": "PENDED_FOR_REVIEW",
+          "rules_only_status": "PARTIALLY_PAID",
+          "scenario": "low_confidence_documentation"
+        }
+      ],
+      "interpretation": "This comparison measures only the local stub's low-confidence review routing; it is not evidence that a production LLM improves adjudication.",
+      "mock_assisted_accuracy": 1.0,
+      "mock_only_correct_cases": 8,
+      "rules_only_accuracy": 0.9375,
+      "rules_only_correct_cases": 0
+    },
+    "token_usage": {
+      "cost_estimate_usd": null,
+      "mock_assisted_tokens": 0,
+      "note": "The local stub uses no paid model; no token price is assumed.",
+      "rules_only_tokens": 0
+    }
+  }
+}

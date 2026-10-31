@@ -73,13 +73,17 @@ class PIIMasker:
     def mask_text(self, value: str) -> str:
         """Mask known values and common PII patterns in arbitrary text."""
         masked = value
+        folded = masked.casefold()
         for known_value in sorted(self._known_values, key=len, reverse=True):
+            if known_value.casefold() not in folded:
+                continue
             masked = re.sub(
                 re.escape(known_value),
                 "[REDACTED]",
                 masked,
                 flags=re.IGNORECASE,
             )
+            folded = masked.casefold()
         for pattern, replacement in _PATTERNS:
             masked = pattern.sub(replacement, masked)
         return masked
