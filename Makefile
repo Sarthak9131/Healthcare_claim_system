@@ -4,7 +4,8 @@ install:
 	python -m pip install -e ".[dev]"
 
 test:
-	python -m pytest tests --cov=claims_processing_cx --cov-report=term-missing
+	python -m pytest tests --cov=claims_processing_cx --cov-report=term-missing \
+		--cov-report=json:evals/results/coverage.json
 
 eval:
 	python -m evals.generate_dataset
