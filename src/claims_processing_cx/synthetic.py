@@ -138,6 +138,7 @@ def create_synthetic_dataset(seed: int = 17) -> SyntheticDataset:
                 claim.model_copy(
                     update={
                         "claim_id": "SYN-CLAIM-00009",
+                        "duplicate_of_claim_id": claim.claim_id,
                         "scenario_tags": ["duplicate_copy"],
                     }
                 )

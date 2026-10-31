@@ -92,7 +92,9 @@ class Claim(StrictModel):
     billed_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
     prior_authorization_id: str | None = None
     other_payer_paid: Decimal = Field(default=Decimal("0.00"), ge=0)
+    clinical_documentation: str | None = None
     diagnosis_codes: list[str] = Field(default_factory=list)
+    duplicate_of_claim_id: str | None = None
     scenario_tags: list[str] = Field(default_factory=list)
     source_format: str = "synthetic-837-json"
 
@@ -117,7 +119,9 @@ class CheckResult(StrictModel):
     reason_code: str | None = None
     details: str
     confidence: Decimal = Field(default=Decimal("1.0"), ge=0, le=1)
-    metadata: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+    metadata: dict[str, str | int | float | bool | None | list[str]] = Field(
+        default_factory=dict
+    )
 
 
 class RankedReasonCode(StrictModel):
@@ -149,3 +153,13 @@ class SyntheticDataset(StrictModel):
     providers: list[Provider]
     policies: list[Policy]
     claims: list[Claim]
+
+
+class Appeal(StrictModel):
+    """Synthetic appeal intake record."""
+
+    appeal_id: str
+    claim_id: str
+    member_id: str
+    appeal_text: str
+    status: str = "RECEIVED"
