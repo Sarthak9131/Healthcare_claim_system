@@ -144,6 +144,9 @@ def test_http_endpoints_and_identity_verified_webhook(tmp_path: Path) -> None:
 
     queue = client.get("/review-queue")
     assert queue.status_code == 200
+    root = client.get("/")
+    assert root.status_code == 200
+    assert root.json()["docs"] == "/docs"
     assert client.get("/health").json()["mode"] == "mock"
 
 

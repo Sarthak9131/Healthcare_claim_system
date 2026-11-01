@@ -77,6 +77,16 @@ def create_app(
     app.state.storage = data_store
     app.state.pipeline = pipeline
 
+    @app.get("/")
+    async def root() -> dict[str, str]:
+        """Expose a useful local landing response instead of a root 404."""
+        return {
+            "service": "Synthetic Claims Processing API",
+            "mode": "mock",
+            "docs": "/docs",
+            "health": "/health",
+        }
+
     @app.get("/health")
     async def health() -> dict[str, str]:
         """Report local service readiness without external dependency checks."""
